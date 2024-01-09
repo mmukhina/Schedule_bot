@@ -1,0 +1,11 @@
+# dependencies
+node_modules/
+
+# macOS
+.DS_Store
+
+# local env files
+.env
+
+
+
