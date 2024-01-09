@@ -15,6 +15,7 @@
     "dotenv": "^16.3.1",
     "google-auth-library": "^9.4.1",
     "googleapis": "^130.0.0",
+    "mongoose": "^8.0.3",
     "node-telegram-bot-api": "^0.64.0",
     "nodemon": "^3.0.2",
     "telegraf": "^4.15.3",
