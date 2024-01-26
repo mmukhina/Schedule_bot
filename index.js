@@ -23,7 +23,7 @@ dotenv.config();
 let dbconnection = false;
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.startWebhook(`/`, null, 4000);
+bot.startWebhook(`/`, null, 3000);
 
 // app config
 app.listen(3000, () => {
