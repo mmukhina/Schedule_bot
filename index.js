@@ -23,10 +23,10 @@ dotenv.config();
 let dbconnection = false;
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+bot.startWebhook(`/`, null, 4000);
 
 // app config
 app.listen(3000, () => {
-    bot.launch()
     console.log('Bot is running!');
     if (!dbconnection) {
         connectToDatabase().catch((err) => {
@@ -90,6 +90,7 @@ let newHomework = {
 }
 
 let lastMessageId = null;
+let openMenu = false;
 
 // functions
 
@@ -142,28 +143,28 @@ const calendar = new Calendar(bot, {
 
 const chooseSubject = generateSubjectInlineKeyboard(subjects);
 
-const mainMenuAdmin = Markup.keyboard([
-    [Markup.button.callback(buttonsText.mainMenu["calander"]), Markup.button.callback(buttonsText.mainMenu["homework"])],
-    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"])],
-    [Markup.button.callback(buttonsText.mainMenu["addAllHomework"])],
+const mainMenuAdmin = Markup.inlineKeyboard([
+    [Markup.button.callback(buttonsText.mainMenu["calander"], "disCalander"), Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["addAllHomework"], "addAllHomework")],
 ]);
 
-const mainMenuUser = Markup.keyboard([
-    [Markup.button.callback(buttonsText.mainMenu["calander"]), Markup.button.callback(buttonsText.mainMenu["homework"])],
-    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"])],
+const mainMenuUser = Markup.inlineKeyboard([
+    [Markup.button.callback(buttonsText.mainMenu["calander"], "disCalander"), Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
 ]);
 
-const chooseDayKeyboard = Markup.keyboard([
-    [Markup.button.callback(buttonsText.chooseDay["mainMenu"])],
-    [Markup.button.callback(buttonsText.chooseDay["today"]), Markup.button.callback(buttonsText.chooseDay["tomorrow"])],
-    [Markup.button.callback(buttonsText.chooseDay["week"]), Markup.button.callback(buttonsText.chooseDay["nextWeek"])],
+const chooseCalanderDayKeyboard = Markup.inlineKeyboard([
+    [Markup.button.callback(buttonsText.chooseDay["mainMenu"], "disMainMenu")],
+    [Markup.button.callback(buttonsText.chooseDay["today"], "calanderToday"), Markup.button.callback(buttonsText.chooseDay["tomorrow"], "calanderTomorrow")],
+    [Markup.button.callback(buttonsText.chooseDay["week"], "calanderWeek"), Markup.button.callback(buttonsText.chooseDay["nextWeek"], "calanderNextWeek")],
 ]);
 
-const chooseHwDayKeyboard = Markup.keyboard([
-    [Markup.button.callback(buttonsText.chooseDay["mainMenu"])],
-    [Markup.button.callback(buttonsText.chooseDay["today"]), Markup.button.callback(buttonsText.chooseDay["tomorrow"])],
-    [Markup.button.callback(buttonsText.chooseDay["week"]), Markup.button.callback(buttonsText.chooseDay["nextWeek"])],
-    [Markup.button.callback(buttonsText.chooseDay["all"])],
+const chooseHwDayKeyboard = Markup.inlineKeyboard([
+    [Markup.button.callback(buttonsText.chooseDay["mainMenu"], "disMainMenu")],
+    [Markup.button.callback(buttonsText.chooseDay["today"], "hwToday"), Markup.button.callback(buttonsText.chooseDay["tomorrow"], "hwTomorrow")],
+    [Markup.button.callback(buttonsText.chooseDay["week"], "hwWeek"), Markup.button.callback(buttonsText.chooseDay["nextWeek"], "hwNextWeek")],
+    [Markup.button.callback(buttonsText.chooseDay["all"], "hwAll")],
 ]);
 
 
@@ -176,10 +177,20 @@ bot.command('start', async (ctx) => {
     const userName = userData.first_name;
     const dbData = await BotUserData.findOne({ userUserName: userUserName });
     if (dbData) {
-        ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /help, чтобы узнать, что я умею.`);
+        if(openMenu){
+            await ctx.deleteMessage();
+            await ctx.deleteMessage(lastMessageId)
+            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /help, чтобы узнать, что я умею.`);
+            lastMessageId = data.message_id;
+        }else{
+            await ctx.deleteMessage();
+            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /help, чтобы узнать, что я умею.`);
+            lastMessageId = data.message_id;
+        }
     } else {
         ctx.reply(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
     }
+    openMenu = true;
 });
 
 bot.command('help', async (ctx) => {
@@ -190,17 +201,34 @@ bot.command('help', async (ctx) => {
     const dbData = await BotUserData.findOne({ userUserName: userUserName });
     if (dbData) {
         if (dbData.status === "admin") {
-            ctx.deleteMessage();
-            ctx.reply('Это главное меню', mainMenuAdmin);
-        }
+            if(openMenu){
+                await ctx.deleteMessage();
+                await ctx.deleteMessage(lastMessageId)
+                const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
+                lastMessageId = data.message_id;
+            }else{
+                await ctx.deleteMessage();
+                const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
+                lastMessageId = data.message_id;
+            }
+    }
         else {
-            ctx.deleteMessage();
-            ctx.reply(`Это главное меню`, mainMenuUser);
+            if(openMenu){
+                lastMessageId = await ctx.editMessageText(`Это главное меню`, mainMenuUser);
+            }else{
+                ctx.deleteMessage(); 
+                lastMessageId = await ctx.reply(`Это главное меню`, mainMenuUser);
+            }
         }
     } else {
-        ctx.deleteMessage();
-        ctx.reply(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
+        if(openMenu){
+            ctx.editMessageText(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
+        }else{
+            ctx.deleteMessage();
+            ctx.reply(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
+        }
     }
+    openMenu = true;
 });
 
 
@@ -233,12 +261,12 @@ bot.command('register', async (ctx) => {
 });
 
 // hears
-bot.hears(buttonsText.mainMenu["calander"], (ctx) => {
+bot.action("disCalander", (ctx) => {
     newHomework.state = false;
-    ctx.reply('Расписание на?', chooseDayKeyboard);
+    ctx.editMessageText('Расписание на?', chooseCalanderDayKeyboard);
 });
 
-bot.hears(buttonsText.chooseDay["mainMenu"], async (ctx) => {
+bot.action("disMainMenu", async (ctx) => {
     newHomework.state = false;
     const userData = ctx.from;
     const userUserName = userData.username;
@@ -246,15 +274,12 @@ bot.hears(buttonsText.chooseDay["mainMenu"], async (ctx) => {
     const dbData = await BotUserData.findOne({ userUserName: userUserName });
     if (dbData) {
         if (dbData.status === "admin") {
-            ctx.deleteMessage();
             //ctx.editMessageReplyMarkup(mainMenuAdmin); 
             //ctx.editMessageCaption("С чем я могу помочь?", mainMenuAdmin);
-            const newMessage =  await ctx.reply("С чем я могу помочь?", mainMenuAdmin);
-            lastMessageId = newMessage.message_id;
+            ctx.editMessageText("С чем я могу помочь?", mainMenuAdmin);
         }
         else {
-            ctx.deleteMessage();
-            ctx.reply("С чем я могу помочь?", mainMenuUser);
+            ctx.editMessageText("С чем я могу помочь?", mainMenuUser);
         }
     } else {
         ctx.deleteMessage();
@@ -262,7 +287,7 @@ bot.hears(buttonsText.chooseDay["mainMenu"], async (ctx) => {
     }
 });
 
-bot.hears(buttonsText.mainMenu["addMyHomework"], async (ctx) => {
+bot.hears("addMyHomework", async (ctx) => {
     // ctx.sendDice();
     //ctx.replyWithPhoto({ source: './public/images/favicon.png' });
     // ctx.telegram.sendMessage('@qwertyh345', 'Hi everyone')
@@ -277,17 +302,15 @@ bot.hears(buttonsText.mainMenu["addAllHomework"], (ctx) => {
     // console.log(chooseSubject.reply_markup.inline_keyboard);
 });
 
-bot.hears(buttonsText.mainMenu["homework"], async (ctx) => {
+bot.action("disHomework", async (ctx) => {
     newHomework.state = false;
-    await ctx.deleteMessage();
-    console.log(lastMessageId)
     //ctx.deleteMessage(lastMessageId);
     //bot.telegram.editMessageText(ctx.chat.id, lastMessageId, null, "hi", chooseHwDayKeyboard);
     //ctx.editMessageText("На какой день?", chooseHwDayKeyboard, lastMessageId);
-    ctx.reply("На какой день?", chooseHwDayKeyboard); 
+    ctx.editMessageText("На какой день?", chooseHwDayKeyboard); 
 });
 
-bot.hears(buttonsText.chooseDay["all"], async (ctx) => {
+bot.action("hwAll", async (ctx) => {
     newHomework.state = false;
     const dbData = await BotHwInfo.find({});
     const dbComp = await BotHwComp.find({userUserName: ctx.from.username});
@@ -298,8 +321,7 @@ bot.hears(buttonsText.chooseDay["all"], async (ctx) => {
     const displayHw = allHw.filter((item) => !hwComplete.includes(item));
 
     if(displayHw.length === 0){
-        ctx.reply("Все дз выполнено");
-        ctx.reply("🎉");
+        ctx.reply("Все дз выполнено! 🎉");
         return;
     }
 
