@@ -12,7 +12,11 @@ const BotHwInfoSchema = new Schema({
   date: {
     type: String,
     required: true,
-  }
+  },
+  manyfiles: {
+    type: Boolean,
+    required: true,
+  },
 });
 
 const BotHwInfo = model("BotHwInfo", BotHwInfoSchema);
