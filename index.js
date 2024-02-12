@@ -576,6 +576,8 @@ bot.on("callback_query", async (ctx) => {
 
             saveNewHomework.save();
 
+            ctx.reply("Задание добавлено!", mainMenuAdmin);
+
 
         }
     }
