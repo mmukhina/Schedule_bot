@@ -93,7 +93,7 @@ function generateSubjectInlineKeyboard(subjects) {
         buttons[numOfRows].push(Markup.button.callback(subjects[i], `subject_${i}`));
         count++;
 
-        if (count === 3){
+        if (count === 3) {
             count = 0;
             numOfRows++;
             buttons.push([]);
@@ -181,19 +181,11 @@ bot.command('start', async (ctx) => {
     const userName = userData.first_name;
     const dbData = await BotUserData.findOne({ userUserName: userUserName });
     if (dbData) {
-        if (openMenu) {
-            await ctx.deleteMessage();
-            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /menu, чтобы узнать, что я умею.`);
-            lastMessageId = data.message_id;
-        } else {
-            await ctx.deleteMessage();
-            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /menu, чтобы узнать, что я умею.`);
-            lastMessageId = data.message_id;
-        }
+        await ctx.deleteMessage();
+        await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /menu, чтобы узнать, что я умею.`);
     } else {
         ctx.reply(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
     }
-    openMenu = true;
 });
 
 bot.command('menu', async (ctx) => {
@@ -204,29 +196,16 @@ bot.command('menu', async (ctx) => {
     const dbData = await BotUserData.findOne({ userUserName: userUserName });
     if (dbData) {
         if (dbData.status === "admin") {
-            if (openMenu) {
-                await ctx.deleteMessage();
-                const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
-            } else {
-                await ctx.deleteMessage();
-                const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
-            }
+            await ctx.deleteMessage();
+            const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
         }
         else {
-            if (openMenu) {
-                lastMessageId = await ctx.editMessageText(`Это главное меню`, mainMenuUser);
-            } else {
-                ctx.deleteMessage();
-                lastMessageId = await ctx.reply(`Это главное меню`, mainMenuUser);
-            }
+            ctx.deleteMessage();
+            lastMessageId = await ctx.reply(`Это главное меню`, mainMenuUser);
         }
     } else {
-        if (openMenu) {
-            ctx.editMessageText(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
-        } else {
-            ctx.deleteMessage();
-            ctx.reply(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
-        }
+        ctx.deleteMessage();
+        ctx.reply(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
     }
     openMenu = true;
 });
@@ -380,7 +359,7 @@ bot.action("hwAll", async (ctx) => {
     newHomework.state = false;
     const dbData = await BotHwInfo.find({});
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
-    
+
     const type = "all";
 
     displayHW(dbData, dbComp, ctx, type);
@@ -462,9 +441,9 @@ bot.action(/subject_(\d+)/, (ctx) => {
         newHomework.subject = selectedSubject;
         newHomework.state = "readyToSend";
 
-        try{
-        ctx.editMessageText(`Предмет: ${newHomework.subject}\nНапиши следующим сообщением дз`);
-        } catch(err){
+        try {
+            ctx.editMessageText(`Предмет: ${newHomework.subject}\nНапиши следующим сообщением дз`);
+        } catch (err) {
             console.log(err);
         }
 
