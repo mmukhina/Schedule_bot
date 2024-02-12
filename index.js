@@ -333,7 +333,8 @@ bot.action("hwNextWeek", async (ctx) => {
         dbData = dbData.concat(data);
     }
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
-    displayHW(dbData, dbComp, ctx);
+    const type = "Следующую неделю";
+    displayHW(dbData, dbComp, ctx, type);
 });
 
 bot.action("hwWeek", async (ctx) => {
@@ -357,7 +358,8 @@ bot.action("hwWeek", async (ctx) => {
     }
 
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
-    displayHW(dbData, dbComp, ctx);
+    const type = "эту неделю";
+    displayHW(dbData, dbComp, ctx, type);
 });
 
 bot.action("hwTomorrow", async (ctx) => {
@@ -373,7 +375,9 @@ bot.action("hwTomorrow", async (ctx) => {
     const dbData = await BotHwInfo.find({ date: today });
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
 
-    displayHW(dbData, dbComp, ctx);
+    const type = "завтра";
+
+    displayHW(dbData, dbComp, ctx, type);
 });
 
 bot.action("hwToday", async (ctx) => {
@@ -389,22 +393,26 @@ bot.action("hwToday", async (ctx) => {
     console.log(dbData);
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
 
-    displayHW(dbData, dbComp, ctx);
+    const type = "сегодня";
+
+    displayHW(dbData, dbComp, ctx, type);
 });
 
 bot.action("hwAll", async (ctx) => {
     newHomework.state = false;
     const dbData = await BotHwInfo.find({});
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
+    
+    const type = "all";
 
-    displayHW(dbData, dbComp, ctx);
+    displayHW(dbData, dbComp, ctx, type);
 
 
     //console.log(dbData);
     //await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, 15);
 });
 
-async function displayHW(dbData, dbComp, ctx) {
+async function displayHW(dbData, dbComp, ctx, type) {
     const allHw = dbData.map((item) => item.messageId);
 
     const manyFiles = {};
@@ -432,6 +440,20 @@ async function displayHW(dbData, dbComp, ctx) {
     }
 
     ctx.deleteMessage();
+
+    if (type === "all") {
+        if (userData.status === "admin") {
+            ctx.reply("Все дз", mainMenuAdmin);
+        } else {
+            ctx.reply("Все дз", mainMenuUser);
+        }
+    } else {
+        if (userData.status === "admin") {
+            ctx.reply(`Дз на ${type}`, mainMenuAdmin);
+        } else {
+            ctx.reply(`Дз на ${type}`, mainMenuUser);
+        }
+    }
 
     for (let i = 0; i < displayHw.length; i++) {
         const messageId = displayHw[i];
