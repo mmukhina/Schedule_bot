@@ -509,6 +509,7 @@ bot.action(/hwComplete_(\d+)/, (ctx) => {
 });
 
 bot.action("allHomeworkSent", (ctx) => {
+    ctx.deleteMessage();
     calendar.startNavCalendar({ chat: { id: 957574111 } });
 });
 
@@ -605,17 +606,6 @@ bot.on("callback_query", async (ctx) => {
     }
 });
 
-bot.hears("hi", async (ctx) => {
-    //await ctx.telegram.forwardMessage(ctx.chat.id, process.env.CHANNEL_ID, "33");
-    //await ctx.telegram.forwardMessage(ctx.chat.id, process.env.CHANNEL_ID, "36");
-    //await ctx.telegram.sendMediaGroup(ctx.chat.id, "13650999618122365");
-
-    // get the document id 
-    const data = await ctx.telegram.forwardMessage(ctx.chat.id, process.env.CHANNEL_ID, "36");
-    console.log(data);
-});
-
-
 
 bot.on('text', async (ctx) => {
     if (newHomework.state === "readyToSend") {
@@ -624,7 +614,7 @@ bot.on('text', async (ctx) => {
         } else {
             newHomework.message = `${newHomework.message}\n${ctx.message.text}`;
         }
-        await ctx.reply("Записал! Нажми на кнопку 👇 если это все", allHomeworkSent);
+        await ctx.reply("Записал! Нажми на кнопку 👇 если это не все", allHomeworkSent);
     }
 });
 
@@ -646,7 +636,7 @@ bot.on('photo', async (ctx) => {
 
         if (newHomework.photo.length === 1) {
             //newHomework.donePhotoId.push((await ctx.reply("Фото добавлено! Нажми на кнопку 👇 если это все", allHomeworkSent)).message_id);
-            await ctx.reply("Фото добавлено! Нажми на кнопку 👇 если это все", allHomeworkSent);
+            await ctx.reply("Фото добавлено! Нажми на кнопку 👇 если это не все", allHomeworkSent);
             //await ctx.deleteMessage(newHomework.donePhotoId.shift());
         }
         //newHomework.donePhotoId = data.message_id;
@@ -724,7 +714,7 @@ bot.on('document', async (ctx) => {
 
         if (newHomework.document.length === 1) {
             //newHomework.donePhotoId.push((await ctx.reply("Фото добавлено! Нажми на кнопку 👇 если это все", allHomeworkSent)).message_id);
-            await ctx.reply("Документ добавлен! Нажми на кнопку 👇 если это все", allHomeworkSent);
+            await ctx.reply("Документ добавлен! Нажми на кнопку 👇 если это не все", allHomeworkSent);
             //await ctx.deleteMessage(newHomework.donePhotoId.shift());
         }
     }
