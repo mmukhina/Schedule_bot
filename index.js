@@ -24,7 +24,7 @@ if (process.env.NODE_ENV === "development") {
 } else { // if local use Long-polling
     bot.launch({
         webhook: {
-            domain: process.env.DOMAIN,// Your domain URL (where server code will be deployed)
+            domain: process.env.DOMAIN,
             port: process.env.PORT || 8000
         }
     });
@@ -32,11 +32,9 @@ if (process.env.NODE_ENV === "development") {
 
 try {
     mongoose.connect(process.env.MONGODB_LINK).catch((err) => console.error(err.message));
-    console.log("Connected to MongoDB");
     dbconnection = true;
 } catch (err) {
-    console.error(err);
-    throw new Error("Unable to connect to MongoDB");
+    console.log(err);
 }
 
 
@@ -185,11 +183,11 @@ bot.command('start', async (ctx) => {
     if (dbData) {
         if (openMenu) {
             await ctx.deleteMessage();
-            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /help, чтобы узнать, что я умею.`);
+            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /menu, чтобы узнать, что я умею.`);
             lastMessageId = data.message_id;
         } else {
             await ctx.deleteMessage();
-            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /help, чтобы узнать, что я умею.`);
+            const data = await ctx.reply(`Привет ${userName}! Я бот, который поможет тебе с твоим расписанием. Напиши /menu, чтобы узнать, что я умею.`);
             lastMessageId = data.message_id;
         }
     } else {
@@ -198,7 +196,7 @@ bot.command('start', async (ctx) => {
     openMenu = true;
 });
 
-bot.command('help', async (ctx) => {
+bot.command('menu', async (ctx) => {
     newHomework.state = false;
     const userData = ctx.from;
     const userUserName = userData.username;
@@ -238,15 +236,13 @@ bot.command('register', async (ctx) => {
     newHomework.state = false;
     const userData = ctx.from;
     const userUserName = userData.username;
-    console.log(userUserName);
 
     try {
         const dbData = await BotUserData.findOne({ userUserName: userUserName });
-        console.log(dbData);
+
         if (dbData) {
             ctx.reply(`Ты уже зарегистрирован!`);
         } else {
-            console.log("yes");
             const newUser = new BotUserData({
                 userUserName: userUserName,
                 status: "user",
@@ -255,9 +251,9 @@ bot.command('register', async (ctx) => {
 
             ctx.reply(`Ты зарегистрирован!`);
         }
-        ctx.reply(`Нажми /help, чтобы узнать, что я умею.`);
+        ctx.reply(`Нажми /menu, чтобы узнать, что я умею.`);
     } catch (err) {
-        console.error(err);
+        console.log(err);
     }
 
 });
@@ -276,8 +272,6 @@ bot.action("disMainMenu", async (ctx) => {
     const dbData = await BotUserData.findOne({ userUserName: userUserName });
     if (dbData) {
         if (dbData.status === "admin") {
-            //ctx.editMessageReplyMarkup(mainMenuAdmin); 
-            //ctx.editMessageCaption("С чем я могу помочь?", mainMenuAdmin);
             ctx.editMessageText("С чем я могу помочь?", mainMenuAdmin);
         }
         else {
@@ -290,27 +284,16 @@ bot.action("disMainMenu", async (ctx) => {
 });
 
 bot.hears("addMyHomework", async (ctx) => {
-    // ctx.sendDice();
-    //ctx.replyWithPhoto({ source: './public/images/favicon.png' });
-    // ctx.telegram.sendMessage('@qwertyh345', 'Hi everyone')
     ctx.reply("Скоро будет");
 });
 
 bot.action("addAllHomework", (ctx) => {
     newHomework.state = true;
     ctx.editMessageText('Выбери предмет', chooseSubject);
-    //calendar.startNavCalendar(ctx.message);
-
-    //console.log(ctx.message);
-    // const chooseSubject = generateSubjectInlineKeyboard(subjects);
-    // console.log(chooseSubject.reply_markup.inline_keyboard);
 });
 
 bot.action("disHomework", async (ctx) => {
     newHomework.state = false;
-    //ctx.deleteMessage(lastMessageId);
-    //bot.telegram.editMessageText(ctx.chat.id, lastMessageId, null, "hi", chooseHwDayKeyboard);
-    //ctx.editMessageText("На какой день?", chooseHwDayKeyboard, lastMessageId);
     ctx.editMessageText("На какой день?", chooseHwDayKeyboard);
 });
 
@@ -329,7 +312,7 @@ bot.action("hwNextWeek", async (ctx) => {
         date.setDate(date.getDate() + i);
         date = date.toISOString().split('T')[0].split('-').reverse().join('-');
         const data = await BotHwInfo.find({ date: date });
-        // add the list of homework for the day to the dbData array
+
         dbData = dbData.concat(data);
     }
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
@@ -353,7 +336,7 @@ bot.action("hwWeek", async (ctx) => {
         date.setDate(date.getDate() + i);
         date = date.toISOString().split('T')[0].split('-').reverse().join('-');
         const data = await BotHwInfo.find({ date: date });
-        // add the list of homework for the day to the dbData array
+
         dbData = dbData.concat(data);
     }
 
@@ -366,11 +349,8 @@ bot.action("hwTomorrow", async (ctx) => {
     newHomework.state = false;
     let today = new Date();
     today.setDate(today.getDate() + 1);
-    //console.log(today);
 
-    // get date in the format "DD-MM-YYYY"
     today = today.toISOString().split('T')[0].split('-').reverse().join('-');
-    //console.log(today);
 
     const dbData = await BotHwInfo.find({ date: today });
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
@@ -383,14 +363,12 @@ bot.action("hwTomorrow", async (ctx) => {
 bot.action("hwToday", async (ctx) => {
     newHomework.state = false;
     let today = new Date();
-    //console.log(today);
 
     // get date in the format "DD-MM-YYYY"
     today = today.toISOString().split('T')[0].split('-').reverse().join('-');
-    //console.log(today);
 
     const dbData = await BotHwInfo.find({ date: today });
-    console.log(dbData);
+
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
 
     const type = "сегодня";
@@ -406,10 +384,6 @@ bot.action("hwAll", async (ctx) => {
     const type = "all";
 
     displayHW(dbData, dbComp, ctx, type);
-
-
-    //console.log(dbData);
-    //await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, 15);
 });
 
 async function displayHW(dbData, dbComp, ctx, type) {
@@ -488,9 +462,12 @@ bot.action(/subject_(\d+)/, (ctx) => {
         newHomework.subject = selectedSubject;
         newHomework.state = "readyToSend";
 
+        try{
         ctx.editMessageText(`Предмет: ${newHomework.subject}\nНапиши следующим сообщением дз`);
-        //ctx.telegram.sendMessage('@qwertyh345', `Новое дз ${newHomework.subject}\n${newHomework.date}`);
-        // Add your logic for handling the selected subject
+        } catch(err){
+            console.log(err);
+        }
+
     } else {
         ctx.reply("Сначала нажми на кнопку Добавить дз всем");
     }
@@ -526,8 +503,6 @@ bot.on("callback_query", async (ctx) => {
         const res = calendar.clickButtonCalendar(ctx.callbackQuery);
         if (res !== -1) {
             newHomework.date = res;
-            //bot.telegram.sendMessage(ctx.callbackQuery.message.chat.id, "You selected: " + res);
-            //ctx.reply('Please choose a subject:', chooseSubject);
 
             const dateStr = res;
             const [day, month, year] = dateStr.split('-').map(Number);
@@ -535,8 +510,6 @@ bot.on("callback_query", async (ctx) => {
             const displayDate = new Intl.DateTimeFormat('ru-RU', options).format(new Date(year, month - 1, day));
 
             const hwMessage = `⭐️${newHomework.subject}⭐️\n📅${displayDate}\n\nЗадание:\n${newHomework.message}`;
-
-            //const messageData = await ctx.telegram.sendMessage(process.env.CHANNEL_ID, hwMessage);
 
             const numberOfPhotos = newHomework.photo.length;
             const numberOfDocuments = newHomework.document.length;
@@ -577,18 +550,11 @@ bot.on("callback_query", async (ctx) => {
                 }
 
                 newHomework.messageId = data[data.length - 1].message_id;
-                console.log(newHomework.messageId);
             }
 
             if (numberOfPhotos > 1 || numberOfDocuments > 1) {
                 newHomework.manyfiles = true;
             }
-
-            //const messageId = await ctx.replyWithMediaGroup(media);
-            //console.log(messageId);
-
-
-            //const messageID = messageData.message_id;
 
             const saveNewHomework = new BotHwInfo({
                 messageId: newHomework.messageId,
@@ -635,66 +601,10 @@ bot.on('photo', async (ctx) => {
         }
 
         if (newHomework.photo.length === 1) {
-            //newHomework.donePhotoId.push((await ctx.reply("Фото добавлено! Нажми на кнопку 👇 если это все", allHomeworkSent)).message_id);
             await ctx.reply("Фото добавлено! Нажми на кнопку 👇 если это не все", allHomeworkSent);
-            //await ctx.deleteMessage(newHomework.donePhotoId.shift());
         }
-        //newHomework.donePhotoId = data.message_id;
-        //console.log(donePhotoId);
-        //calendar.startNavCalendar(ctx.message);
-
-        /*
-        if (newHomework.photo.length === 3) {
-            const media = [
-                { type: 'photo', media: newHomework.photo[0] },
-                { type: 'photo', media: newHomework.photo[1] },
-                { type: 'photo', media: newHomework.photo[2] , caption: "yes"},
-            ];
-
-            const messageId = await ctx.replyWithMediaGroup(media);
-            console.log(messageId);
-
-        }
-        */
-
     }
-
-    //console.log(ctx.message);
-
-    //const fileId = ctx.message.photo[0].file_id;
-    //console.log(fileId);
-
-    //ctx.replyWithPhoto(fileId);
-
-
-    //ctx.replyWithPhoto(message.photo.pop().file_id);
-    //const photo = ctx.message.photo;
-    // Process the photo message
-    //const largestPhoto = photo[photo.length - 1];
-    //ctx.reply(`You sent a photo with file_id: ${largestPhoto.file_id}`);
 });
-
-
-/*
-
-bot.on('message', (ctx) => {
-    // Check if the message contains photos
-    if (ctx.message.photo && ctx.message.photo.length > 1) {
-      const numberOfPhotos = ctx.message.photo.length;
-      console.log(`User sent ${numberOfPhotos} photos`);
-  
-      // Handle the scenario where the user sent multiple photos
-      // You can access the file_id or other properties of each photo in the array
-      ctx.reply(`Thanks for sending ${numberOfPhotos} photos!`);
-    } else {
-      // Handle other types of messages or single photos
-      ctx.reply('Please send multiple photos.');
-    }
-  });
-
-  */
-
-
 
 // receive file
 bot.on('document', async (ctx) => {
@@ -713,10 +623,7 @@ bot.on('document', async (ctx) => {
         }
 
         if (newHomework.document.length === 1) {
-            //newHomework.donePhotoId.push((await ctx.reply("Фото добавлено! Нажми на кнопку 👇 если это все", allHomeworkSent)).message_id);
             await ctx.reply("Документ добавлен! Нажми на кнопку 👇 если это не все", allHomeworkSent);
-            //await ctx.deleteMessage(newHomework.donePhotoId.shift());
         }
     }
-    //ctx.reply(`You sent a file with name: ${file.file_name}`);
 });
