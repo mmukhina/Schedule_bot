@@ -59,15 +59,14 @@ const buttonsText = {
 }
 
 const subjects = {
-    1: "ТеРмех",
-    2: "Диффуры",
-    3: "Физика",
-    4: "Инжа",
-    5: "Элтех",
-    6: "Матвед",
-    7: "Социология",
-    8: "ТВиМС",
-    9: "ТеХмех",
+    1: "ТКМ",
+    2: "Английский",
+    3: "Метрология",
+    4: "Элтех",
+    5: "ТВиМС",
+    6: "ТФКП",
+    7: "ТеХмех",
+    8: "Аэродинамика",
 }
 
 let newHomework = {
@@ -87,11 +86,24 @@ let openMenu = false;
 // functions
 
 function generateSubjectInlineKeyboard(subjects) {
-    const buttons = Object.entries(subjects).map(([key, value]) =>
-        Markup.button.callback(value, `subject_${key}`)
-    );
+    // add a back button
+    let buttons = [[Markup.button.callback("Главное меню", "disMainMenu")], []];
+    let numOfRows = 1;
+    let count = 0;
 
-    return Markup.inlineKeyboard(buttons, { columns: 3 });
+    for (let i = 1; i <= Object.keys(subjects).length; i++) {
+        buttons[numOfRows].push(Markup.button.callback(subjects[i], `subject_${i}`));
+        count++;
+
+        if (count === 3){
+            count = 0;
+            numOfRows++;
+            buttons.push([]);
+        }
+
+    }
+
+    return Markup.inlineKeyboard(buttons);
 }
 
 
@@ -136,14 +148,12 @@ const calendar = new Calendar(bot, {
 const chooseSubject = generateSubjectInlineKeyboard(subjects);
 
 const mainMenuAdmin = Markup.inlineKeyboard([
-    [Markup.button.callback(buttonsText.mainMenu["calander"], "disCalander"), Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
-    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
     [Markup.button.callback(buttonsText.mainMenu["addAllHomework"], "addAllHomework")],
 ]);
 
 const mainMenuUser = Markup.inlineKeyboard([
-    [Markup.button.callback(buttonsText.mainMenu["calander"], "disCalander"), Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
-    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
 ]);
 
 const chooseCalanderDayKeyboard = Markup.inlineKeyboard([
@@ -198,13 +208,10 @@ bot.command('help', async (ctx) => {
         if (dbData.status === "admin") {
             if (openMenu) {
                 await ctx.deleteMessage();
-                await ctx.deleteMessage(lastMessageId)
                 const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
-                lastMessageId = data.message_id;
             } else {
                 await ctx.deleteMessage();
                 const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
-                lastMessageId = data.message_id;
             }
         }
         else {
@@ -291,7 +298,7 @@ bot.hears("addMyHomework", async (ctx) => {
 
 bot.action("addAllHomework", (ctx) => {
     newHomework.state = true;
-    ctx.editMessageText('Please choose a subject:', chooseSubject);
+    ctx.editMessageText('Выбери предмет', chooseSubject);
     //calendar.startNavCalendar(ctx.message);
 
     //console.log(ctx.message);
@@ -307,11 +314,97 @@ bot.action("disHomework", async (ctx) => {
     ctx.editMessageText("На какой день?", chooseHwDayKeyboard);
 });
 
+bot.action("hwNextWeek", async (ctx) => {
+    // find the next monday
+    newHomework.state = false;
+    let today = new Date();
+    let day = today.getDay();
+    let diff = today.getDate() - day + (day == 0 ? -6 : 1);
+    let monday = new Date(today.setDate(diff));
+    monday.setDate(monday.getDate() + 7);
+
+    let dbData = [];
+    for (let i = 0; i < 6; i++) {
+        let date = new Date(monday);
+        date.setDate(date.getDate() + i);
+        date = date.toISOString().split('T')[0].split('-').reverse().join('-');
+        const data = await BotHwInfo.find({ date: date });
+        // add the list of homework for the day to the dbData array
+        dbData = dbData.concat(data);
+    }
+    const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
+    displayHW(dbData, dbComp, ctx);
+});
+
+bot.action("hwWeek", async (ctx) => {
+    // display all homework for the week
+    newHomework.state = false;
+    let today = new Date();
+
+    // find the closest monday
+    let day = today.getDay();
+    let diff = today.getDate() - day + (day == 0 ? -6 : 1);
+    let monday = new Date(today.setDate(diff));
+
+    let dbData = [];
+    for (let i = 0; i < 6; i++) {
+        let date = new Date(monday);
+        date.setDate(date.getDate() + i);
+        date = date.toISOString().split('T')[0].split('-').reverse().join('-');
+        const data = await BotHwInfo.find({ date: date });
+        // add the list of homework for the day to the dbData array
+        dbData = dbData.concat(data);
+    }
+
+    const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
+    displayHW(dbData, dbComp, ctx);
+});
+
+bot.action("hwTomorrow", async (ctx) => {
+    newHomework.state = false;
+    let today = new Date();
+    today.setDate(today.getDate() + 1);
+    //console.log(today);
+
+    // get date in the format "DD-MM-YYYY"
+    today = today.toISOString().split('T')[0].split('-').reverse().join('-');
+    //console.log(today);
+
+    const dbData = await BotHwInfo.find({ date: today });
+    const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
+
+    displayHW(dbData, dbComp, ctx);
+});
+
+bot.action("hwToday", async (ctx) => {
+    newHomework.state = false;
+    let today = new Date();
+    //console.log(today);
+
+    // get date in the format "DD-MM-YYYY"
+    today = today.toISOString().split('T')[0].split('-').reverse().join('-');
+    //console.log(today);
+
+    const dbData = await BotHwInfo.find({ date: today });
+    console.log(dbData);
+    const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
+
+    displayHW(dbData, dbComp, ctx);
+});
+
 bot.action("hwAll", async (ctx) => {
     newHomework.state = false;
     const dbData = await BotHwInfo.find({});
     const dbComp = await BotHwComp.find({ userUserName: ctx.from.username });
 
+    displayHW(dbData, dbComp, ctx);
+
+
+    //console.log(dbData);
+    //await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, 15);
+});
+
+async function displayHW(dbData, dbComp, ctx) {
     const allHw = dbData.map((item) => item.messageId);
 
     const manyFiles = {};
@@ -327,15 +420,22 @@ bot.action("hwAll", async (ctx) => {
 
     const displayHw = allHw.filter((item) => !hwComplete.includes(item));
 
+    const userData = await BotUserData.findOne({ userUserName: ctx.from.username });
+
     if (displayHw.length === 0) {
-        // ctx.deleteMessage();
-        ctx.reply("Все дз выполнено! 🎉");
+        if (userData.status === "admin") {
+            ctx.editMessageText("Все дз выполнено! 🎉", mainMenuAdmin);
+        } else {
+            ctx.editMessageText("Все дз выполнено! 🎉", mainMenuUser);
+        }
         return;
     }
 
+    ctx.deleteMessage();
+
     for (let i = 0; i < displayHw.length; i++) {
         const messageId = displayHw[i];
-        console.log(messageId);
+
 
         let completeBtn;
 
@@ -356,10 +456,7 @@ bot.action("hwAll", async (ctx) => {
         await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, messageId, completeBtn);
 
     }
-    //console.log(dbData);
-    //await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, 15);
-});
-
+}
 
 // actions
 bot.action(/subject_(\d+)/, (ctx) => {
@@ -369,14 +466,7 @@ bot.action(/subject_(\d+)/, (ctx) => {
         newHomework.subject = selectedSubject;
         newHomework.state = "readyToSend";
 
-        const dateStr = newHomework.date;
-        const [day, month, year] = dateStr.split('-').map(Number);
-        const options = { weekday: 'long', month: 'long', day: 'numeric' };
-        //const displayDate = new Intl.DateTimeFormat('ru-RU', options).format(new Date(year, month - 1, day));
-
-        const displayDate = "later";
-
-        ctx.editMessageText(`Предмет: ${newHomework.subject}\nДата: ${displayDate}\n\nНапиши следующим сообщением дз`);
+        ctx.editMessageText(`Предмет: ${newHomework.subject}\nНапиши следующим сообщением дз`);
         //ctx.telegram.sendMessage('@qwertyh345', `Новое дз ${newHomework.subject}\n${newHomework.date}`);
         // Add your logic for handling the selected subject
     } else {
