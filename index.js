@@ -257,7 +257,11 @@ bot.action("disMainMenu", async (ctx) => {
             ctx.editMessageText("С чем я могу помочь?", mainMenuUser);
         }
     } else {
-        ctx.deleteMessage();
+        try{
+            ctx.deleteMessage();
+        }catch (err){
+            console.log(err);
+        }
         ctx.reply(`Привет ${userName}! Ты еще не зарегистрирован! Нажми /register, чтобы зарегистрироваться.`);
     }
 });
@@ -268,6 +272,18 @@ bot.hears("addMyHomework", async (ctx) => {
 
 bot.action("addAllHomework", (ctx) => {
     newHomework.state = true;
+
+    newHomework = {
+        state: "false",
+        subject: "",
+        date: "",
+        messageId: null,
+        message: "",
+        photo: [],
+        document: [],
+        manyfiles: false,
+    }
+    
     ctx.editMessageText('Выбери предмет', chooseSubject);
 });
 
@@ -392,7 +408,11 @@ async function displayHW(dbData, dbComp, ctx, type) {
         return;
     }
 
-    ctx.deleteMessage();
+    try{
+        ctx.deleteMessage();
+    }catch (err){
+        console.log(err);
+    }
 
     if (type === "all") {
         if (userData.status === "admin") {
@@ -545,7 +565,6 @@ bot.on("callback_query", async (ctx) => {
             saveNewHomework.save();
 
             ctx.reply("Задание добавлено!", mainMenuAdmin);
-
 
         }
     }
