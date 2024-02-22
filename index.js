@@ -414,26 +414,10 @@ async function displayHW(dbData, dbComp, ctx, type) {
         console.log(err);
     }
 
-    if (type === "all") {
-        if (userData.status === "admin") {
-            ctx.reply("Все дз", mainMenuAdmin);
-        } else {
-            ctx.reply("Все дз", mainMenuUser);
-        }
-    } else {
-        if (userData.status === "admin") {
-            ctx.reply(`Дз на ${type}`, mainMenuAdmin);
-        } else {
-            ctx.reply(`Дз на ${type}`, mainMenuUser);
-        }
-    }
-
     for (let i = 0; i < displayHw.length; i++) {
         const messageId = displayHw[i];
 
-
         let completeBtn;
-
 
         if (manyFiles[messageId] === true) {
             completeBtn = Markup.inlineKeyboard([
@@ -450,6 +434,20 @@ async function displayHW(dbData, dbComp, ctx, type) {
 
         await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, messageId, completeBtn);
 
+    }
+
+    if (type === "all") {
+        if (userData.status === "admin") {
+            ctx.reply("Все дз", mainMenuAdmin);
+        } else {
+            ctx.reply("Все дз", mainMenuUser);
+        }
+    } else {
+        if (userData.status === "admin") {
+            ctx.reply(`Дз на ${type}`, mainMenuAdmin);
+        } else {
+            ctx.reply(`Дз на ${type}`, mainMenuUser);
+        }
     }
 }
 
