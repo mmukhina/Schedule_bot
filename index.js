@@ -486,7 +486,8 @@ bot.action(/hwComplete_(\d+)/, (ctx) => {
 
 bot.action("allHomeworkSent", (ctx) => {
     ctx.deleteMessage();
-    calendar.startNavCalendar({ chat: { id: 957574111 } });
+    const chatId = ctx.update.callback_query.from.id;
+    calendar.startNavCalendar({ chat: { id: chatId } });
 });
 
 bot.action("addMore", (ctx) => {
