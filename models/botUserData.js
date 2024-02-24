@@ -6,6 +6,9 @@ const botUserDataSchema = new Schema({
     required: true,
     unique: true,
   },
+  name: {
+    type: String,
+  },
   status: {
     type: String,
     required: true,
