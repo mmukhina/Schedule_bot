@@ -482,7 +482,7 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
                     text: 'Все материалы',
                     url: `https://t.me/${process.env.CHANNEL_ID}/${messageId}`,
                 },
-                , Markup.button.callback("✅ Готово", `hwComplete_${messageId}`)]);
+                Markup.button.callback("✅ Готово", `hwComplete_${messageId}`)]);
         } else {
             completeBtn = Markup.inlineKeyboard([
                 Markup.button.callback("✅ Готово", `hwComplete_${messageId}`),
@@ -630,10 +630,10 @@ async function saveHw(ctx, res) {
 
         const data = await BotUserData.findOne({ userUserName: ctx.from.username });
         if (data.status === "admin") {
-            ctx.editMessageText("Задание добавлено!", mainMenuAdmin);
+            ctx.reply("Задание добавлено!", mainMenuAdmin);
         }
         else {
-            ctx.editMessageText("Задание добавлено!", mainMenuUser);
+            ctx.reply("Задание добавлено!", mainMenuUser);
         }
 
         myHomework = {
