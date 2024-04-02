@@ -491,6 +491,7 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
         }
 
         await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, messageId, completeBtn);
+        await ctx.reply(`https://t.me/${process.env.CHANNEL_ID}/${messageId}`);
 
     }
 
