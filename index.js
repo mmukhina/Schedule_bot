@@ -474,14 +474,25 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
     
     for (let i = 0; i < displayHw.length; i++) {
         const messageId = displayHw[i];
-        const keyboard = manyFiles[messageId] === true ?
-            Markup.inlineKeyboard([
-                { text: 'Все материалы', url: `https://t.me/${process.env.CHANNEL_ID}/${messageId}` },
-                Markup.button.callback("✅ Готово", `hwComplete_${messageId}`)
-            ]) :
-            Markup.inlineKeyboard([Markup.button.callback("✅ Готово", `hwComplete_${messageId}`)]);
-    
-        await ctx.telegram.sendMessage(ctx.chat.id, `https://t.me/${process.env.CHANNEL_ID}/${messageId}`, { reply_markup: keyboard });
+
+        let completeBtn;
+
+        if (manyFiles[messageId] === true) {
+            completeBtn = Markup.inlineKeyboard([
+                {
+                    text: 'Все материалы',
+                    url: `https://t.me/${process.env.CHANNEL_ID}/${messageId}`,
+                },
+                Markup.button.callback("✅ Готово", `hwComplete_${messageId}`)]);
+        } else {
+            completeBtn = Markup.inlineKeyboard([
+                Markup.button.callback("✅ Готово", `hwComplete_${messageId}`),
+            ]);
+        }
+
+        await ctx.telegram.copyMessage(ctx.chat.id, process.env.CHANNEL_ID, messageId, completeBtn);
+        await ctx.reply(`https://t.me/${process.env.CHANNEL_ID}/${messageId}`);
+
     }
 
     for (let i = 0; i < dbUserHw.length; i++) {
