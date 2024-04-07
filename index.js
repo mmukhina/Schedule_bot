@@ -481,7 +481,7 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
             completeBtn = Markup.inlineKeyboard([
                 {
                     text: 'Все материалы',
-                    url: `https://t.me/${process.env.CHANNEL_ID}/${messageId}`,
+                    url: `https://t.me/${process.env.CHANNEL_ID_REDIRECT}/${messageId}`,
                 },
                 Markup.button.callback("✅ Готово", `hwComplete_${messageId}`)]);
         } else {
