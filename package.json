@@ -21,6 +21,7 @@
     "mongoose": "^8.0.3",
     "node-telegram-bot-api": "^0.64.0",
     "nodemon": "^3.0.2",
+    "openai": "^4.57.0",
     "telegraf": "^4.15.3",
     "telegram-bot-calendar": "^1.0.7",
     "telegram-inline-calendar": "^1.7.0",
