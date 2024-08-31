@@ -9,12 +9,19 @@ import BotUserData from './models/botUserData.js';
 import BotHwInfo from './models/botHwInfo.js';
 import BotHwComp from './models/botHwComp.js';
 import BotUserHw from './models/botUserHw.js';
+import { Configuration, OpenAIApi } from 'openai';
 
 dotenv.config();
 
 let dbconnection = false;
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAIApi(configuration);
 
 if (process.env.NODE_ENV !== "development") {
     bot.startWebhook(`/${process.env.BOT_TOKEN}`, null, 3000);
@@ -46,6 +53,7 @@ const buttonsText = {
         "homework": "ДЗ 📚",
         "addMyHomework": "Добавить задание себе ⭐️",
         "addAllHomework": "‼️ Добавить дз всем ‼️",
+        "gpt": "GPT 🤖",
     },
     chooseDay: {
         "mainMenu": "Главное меню",
@@ -89,6 +97,7 @@ let myHomework = {
 
 let lastMessageId = null;
 let openMenu = false;
+let gpt_state = false;
 
 // functions
 
@@ -153,6 +162,13 @@ const calendar = new Calendar(bot, {
 // Keyboards
 
 const chooseSubject = generateSubjectInlineKeyboard(subjects);
+
+const mainMenuAdminPro = Markup.inlineKeyboard([
+    [Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["addAllHomework"], "addAllHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["gpt"], "gpt")],
+]);
 
 const mainMenuAdmin = Markup.inlineKeyboard([
     [Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
@@ -221,6 +237,12 @@ bot.command('menu', async (ctx) => {
             } catch (err) {
             }
             const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
+        } else if (dbData.status === "admin-Pro") {
+            try {
+                await ctx.deleteMessage();
+            } catch (err) {
+            }
+            const data = await ctx.reply(`Это главное меню`, mainMenuAdminPro);
         }
         else {
             try {
@@ -283,6 +305,8 @@ bot.action("disMainMenu", async (ctx) => {
     if (dbData) {
         if (dbData.status === "admin") {
             ctx.editMessageText("С чем я могу помочь?", mainMenuAdmin);
+        } else if (dbData.status === "admin-Pro") {
+            ctx.editMessageText("С чем я могу помочь?", mainMenuAdminPro);
         }
         else {
             ctx.editMessageText("С чем я могу помочь?", mainMenuUser);
@@ -311,6 +335,11 @@ bot.action("addAllHomework", (ctx) => {
     }
 
     ctx.editMessageText('Выбери предмет', chooseSubject);
+});
+
+bot.action("gpt", (ctx) => {
+    gpt_state = true;
+    ctx.editMessageText('Введите текст');
 });
 
 bot.action("addMyHomework", (ctx) => {
@@ -454,6 +483,8 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
     if (displayHw.length === 0 && dbUserHw.length === 0) {
         if (userData.status === "admin") {
             await ctx.editMessageText("Все дз выполнено! 🎉", mainMenuAdmin);
+        } else if (userData.status === "admin-Pro") {
+            await ctx.editMessageText("Все дз выполнено! 🎉", mainMenuAdminPro)
         } else {
             await ctx.editMessageText("Все дз выполнено! 🎉", mainMenuUser);
         }
@@ -471,7 +502,7 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
         await ctx.reply(`Дз на ${type}`);
     }
 
-    
+
     for (let i = 0; i < displayHw.length; i++) {
         const messageId = displayHw[i];
 
@@ -509,6 +540,8 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
 
     if (userData.status === "admin") {
         ctx.reply("Главное меню", mainMenuAdmin);
+    } else if (userData.status === "admin-Pro") {
+        ctx.reply("Главное меню", mainMenuAdminPro);
     } else {
         ctx.reply("Главное меню", mainMenuUser);
     }
@@ -596,7 +629,7 @@ bot.action("dueNextWeek", async (ctx) => {
 });
 
 bot.action("dueChooseDate", async (ctx) => {
-    try{
+    try {
         ctx.deleteMessage();
     } catch (err) {
     }
@@ -632,8 +665,9 @@ async function saveHw(ctx, res) {
         const data = await BotUserData.findOne({ userUserName: ctx.from.username });
         if (data.status === "admin") {
             ctx.reply("Задание добавлено!", mainMenuAdmin);
-        }
-        else {
+        } else if (data.status === "admin-Pro") {
+            ctx.reply("Задание добавлено!", mainMenuAdminPro);
+        } else {
             ctx.reply("Задание добавлено!", mainMenuUser);
         }
 
@@ -713,8 +747,12 @@ async function saveHw(ctx, res) {
 
     saveNewHomework.save();
 
-    ctx.reply("Задание добавлено!", mainMenuAdmin);
-
+    const userData = await BotUserData.findOne({ userUserName: ctx.from.username });
+    if (userData.status === "admin") {
+        ctx.reply("Задание добавлено!", mainMenuAdmin);
+    } else if (userData.status === "admin-Pro") {
+        ctx.reply("Задание добавлено!", mainMenuAdminPro);
+    }
 }
 
 
@@ -738,7 +776,29 @@ bot.on('text', async (ctx) => {
         myHomework.message = ctx.message.text;
         ctx.reply("Записал! Нажми на кнопку 👇 если это не все", allHomeworkSent);
     }
+
+    if (gpt_state === true) {
+        const text = ctx.message.text;
+        const response = await getChatGPTResponse(text);
+        ctx.editMessageText(response);
+    }
 });
+
+async function getChatGPTResponse(text) {
+    try {
+      const response = await openai.createChatCompletion({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'user', content: text }
+        ],
+      });
+  
+      const responseText = response.data.choices[0].message.content;
+      return responseText;
+    } catch (error) {
+      return "Error with GPT: " + error;
+    }
+  }
 
 
 bot.on('photo', async (ctx) => {
