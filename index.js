@@ -780,7 +780,8 @@ bot.on('text', async (ctx) => {
         const text = ctx.message.text;
         ctx.reply("Подожди, я думаю...");
         const response = await getChatGPTResponse(text);
-        ctx.editMessageText(response);
+        console.log(response);
+        ctx.reply(response);
     }
 });
 
