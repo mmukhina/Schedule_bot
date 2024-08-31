@@ -9,7 +9,7 @@ import BotUserData from './models/botUserData.js';
 import BotHwInfo from './models/botHwInfo.js';
 import BotHwComp from './models/botHwComp.js';
 import BotUserHw from './models/botUserHw.js';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 
 dotenv.config();
 
