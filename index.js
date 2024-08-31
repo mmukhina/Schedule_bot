@@ -17,11 +17,10 @@ let dbconnection = false;
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const configuration = new Configuration({
+const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
-});
+  });
 
-const openai = new OpenAIApi(configuration);
 
 if (process.env.NODE_ENV !== "development") {
     bot.startWebhook(`/${process.env.BOT_TOKEN}`, null, 3000);
@@ -786,7 +785,7 @@ bot.on('text', async (ctx) => {
 
 async function getChatGPTResponse(text) {
     try {
-      const response = await openai.createChatCompletion({
+      const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           { role: 'user', content: text }
