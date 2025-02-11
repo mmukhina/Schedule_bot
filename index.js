@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 import { Telegraf, Markup } from 'telegraf';
+import { message } from 'telegraf/filters';
 import * as dotenv from "dotenv";
 import Calendar from 'telegram-inline-calendar';
 import { Keyboard, Key } from 'telegram-keyboard';
@@ -9,22 +10,24 @@ import BotUserData from './models/botUserData.js';
 import BotHwInfo from './models/botHwInfo.js';
 import BotHwComp from './models/botHwComp.js';
 import BotUserHw from './models/botUserHw.js';
-import OpenAI from 'openai';
+import BotSaveRedirect from './models/botSaveRedirect.js';
 
 dotenv.config();
 
 let dbconnection = false;
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+//const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf("6635082050:AAENJb8buj2jtobZM93pg3ycNAaMKHkHcjQ");
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
+let messageId;
+let fromChatId;
 
 
+/*
 if (process.env.NODE_ENV !== "development") {
     bot.startWebhook(`/${process.env.BOT_TOKEN}`, null, 3000);
 }
+    */
 
 if (process.env.NODE_ENV === "development") {
     bot.launch();
@@ -53,6 +56,7 @@ const buttonsText = {
         "addMyHomework": "Добавить задание себе ⭐️",
         "addAllHomework": "‼️ Добавить дз всем ‼️",
         "gpt": "GPT 🤖",
+        "info": "Важное ❗️"
     },
     chooseDay: {
         "mainMenu": "Главное меню",
@@ -65,15 +69,15 @@ const buttonsText = {
 }
 
 const subjects = {
-    1: "КЛА",
+    1: "Алгоритмы и структуры данных",
     2: "Английский",
-    3: "Экология",
-    4: "Дискретка",
-    5: "Менеджмент",
-    6: "Датчики",
-    7: "Микроэлектроника",
-    8: "ТАУ",
-    9: "С++"
+    3: "ТАУ",
+    4: "Оснащение",
+    5: "Экономика",
+    6: "Вычислительные системы",
+    7: "Методы оптимизации",
+    8: "С++",
+    9: "Стат. динамика"
 }
 
 let newHomework = {
@@ -97,6 +101,8 @@ let myHomework = {
 let lastMessageId = null;
 let openMenu = false;
 let gpt_state = false;
+let forward_message = false;
+let see_info = false;
 
 // functions
 
@@ -162,22 +168,17 @@ const calendar = new Calendar(bot, {
 
 const chooseSubject = generateSubjectInlineKeyboard(subjects);
 
-const mainMenuAdminPro = Markup.inlineKeyboard([
-    [Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
-    [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
-    [Markup.button.callback(buttonsText.mainMenu["addAllHomework"], "addAllHomework")],
-    [Markup.button.callback(buttonsText.mainMenu["gpt"], "gpt")],
-]);
-
 const mainMenuAdmin = Markup.inlineKeyboard([
     [Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
     [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
     [Markup.button.callback(buttonsText.mainMenu["addAllHomework"], "addAllHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["info"], "seeInfo")],
 ]);
 
 const mainMenuUser = Markup.inlineKeyboard([
     [Markup.button.callback(buttonsText.mainMenu["homework"], "disHomework")],
     [Markup.button.callback(buttonsText.mainMenu["addMyHomework"], "addMyHomework")],
+    [Markup.button.callback(buttonsText.mainMenu["info"], "seeInfo")],
 ]);
 
 const chooseCalanderDayKeyboard = Markup.inlineKeyboard([
@@ -236,12 +237,6 @@ bot.command('menu', async (ctx) => {
             } catch (err) {
             }
             const data = await ctx.reply(`Это главное меню`, mainMenuAdmin);
-        } else if (dbData.status === "admin-Pro") {
-            try {
-                await ctx.deleteMessage();
-            } catch (err) {
-            }
-            const data = await ctx.reply(`Это главное меню`, mainMenuAdminPro);
         }
         else {
             try {
@@ -304,8 +299,6 @@ bot.action("disMainMenu", async (ctx) => {
     if (dbData) {
         if (dbData.status === "admin") {
             ctx.editMessageText("С чем я могу помочь?", mainMenuAdmin);
-        } else if (dbData.status === "admin-Pro") {
-            ctx.editMessageText("С чем я могу помочь?", mainMenuAdminPro);
         }
         else {
             ctx.editMessageText("С чем я могу помочь?", mainMenuUser);
@@ -344,6 +337,11 @@ bot.action("gpt", (ctx) => {
 bot.action("addMyHomework", (ctx) => {
     myHomework.state = true;
     ctx.editMessageText('Что нужно сделать?');
+});
+
+bot.action("seeInfo", (ctx) => {
+    see_info = true;
+    ctx.reply('Выбери предмет', chooseSubject);
 });
 
 bot.action("disHomework", async (ctx) => {
@@ -482,8 +480,6 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
     if (displayHw.length === 0 && dbUserHw.length === 0) {
         if (userData.status === "admin") {
             await ctx.editMessageText("Все дз выполнено! 🎉", mainMenuAdmin);
-        } else if (userData.status === "admin-Pro") {
-            await ctx.editMessageText("Все дз выполнено! 🎉", mainMenuAdminPro)
         } else {
             await ctx.editMessageText("Все дз выполнено! 🎉", mainMenuUser);
         }
@@ -539,8 +535,6 @@ async function displayHW(dbData, dbComp, ctx, type, dbUserHw) {
 
     if (userData.status === "admin") {
         ctx.reply("Главное меню", mainMenuAdmin);
-    } else if (userData.status === "admin-Pro") {
-        ctx.reply("Главное меню", mainMenuAdminPro);
     } else {
         ctx.reply("Главное меню", mainMenuUser);
     }
@@ -559,8 +553,56 @@ bot.action(/UserhwComplete_(\w+)/, async (ctx) => {
 
 
 // actions
-bot.action(/subject_(\d+)/, (ctx) => {
-    if (newHomework.state) {
+bot.action(/subject_(\d+)/, async (ctx) => {
+    if (forward_message) {
+        forward_message = false;
+        const subjectId = ctx.match[1];
+        const selectedSubject = subjects[subjectId];
+
+        const newRedirect = new BotSaveRedirect({
+            messageId,
+            fromChatId,
+            subject: selectedSubject,
+        });
+
+        newRedirect.save();
+        const userData = await BotUserData.findOne({ userUserName: ctx.from.username });
+        if (userData.status === "admin") {
+            ctx.editMessageText("Cохранено!", mainMenuAdmin);
+        } else {
+            ctx.editMessageText("Cохранено!", mainMenuUser);
+        }
+    } else if (see_info) {
+        const subjectId = ctx.match[1];
+        const selectedSubject = subjects[subjectId];
+
+        const info = await BotSaveRedirect.find({ subject: selectedSubject });
+
+        if (info.length == 0) {
+            ctx.reply("Ничего не сохранено");
+        } else {
+            for (let i = 0; i < info.length; i++) {
+                try {
+                    await ctx.telegram.copyMessage(
+                        ctx.chat.id,
+                        info[i].fromChatId,
+                        info[i].messageId,
+                    );
+                } catch (e){
+                    console.log(e);
+                }
+                
+            }
+        }
+
+        const data = await BotUserData.findOne({ userUserName: ctx.from.username });
+        if (data.status === "admin") {
+            ctx.reply("Меню", mainMenuAdmin);
+        } else {
+            ctx.reply("Меню", mainMenuUser);
+        }
+    }
+    else if (newHomework.state != 'false') {
         const subjectId = ctx.match[1];
         const selectedSubject = subjects[subjectId];
         newHomework.subject = selectedSubject;
@@ -664,8 +706,6 @@ async function saveHw(ctx, res) {
         const data = await BotUserData.findOne({ userUserName: ctx.from.username });
         if (data.status === "admin") {
             ctx.reply("Задание добавлено!", mainMenuAdmin);
-        } else if (data.status === "admin-Pro") {
-            ctx.reply("Задание добавлено!", mainMenuAdminPro);
         } else {
             ctx.reply("Задание добавлено!", mainMenuUser);
         }
@@ -749,13 +789,21 @@ async function saveHw(ctx, res) {
     const userData = await BotUserData.findOne({ userUserName: ctx.from.username });
     if (userData.status === "admin") {
         ctx.reply("Задание добавлено!", mainMenuAdmin);
-    } else if (userData.status === "admin-Pro") {
-        ctx.reply("Задание добавлено!", mainMenuAdminPro);
     }
 }
 
+bot.on('message', async (ctx) => {
+    const message = ctx.message;
 
-bot.on('text', async (ctx) => {
+    if (message.forward_origin) {
+        forward_message = true;
+        messageId = message.message_id;
+        fromChatId = message.chat.id;
+        ctx.reply('Выбери предмет', chooseSubject);
+    }
+});
+
+bot.on(message('text'), async (ctx) => {
     if (myHomework.state === true) {
         if (myHomework.message === "") {
             myHomework.message = ctx.message.text;
@@ -775,34 +823,12 @@ bot.on('text', async (ctx) => {
         myHomework.message = ctx.message.text;
         ctx.reply("Записал! Нажми на кнопку 👇 если это не все", allHomeworkSent);
     }
-
-    if (gpt_state === true) {
-        const text = ctx.message.text;
-        ctx.reply("Подожди, я думаю...");
-        const response = await getChatGPTResponse(text);
-        console.log(response);
-        ctx.reply(response);
-    }
 });
 
-async function getChatGPTResponse(text) {
-    try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'user', content: text }
-        ],
-      });
-  
-      const responseText = response.data.choices[0].message.content;
-      return responseText;
-    } catch (error) {
-      return "Error with GPT: " + error;
-    }
-  }
 
 
-bot.on('photo', async (ctx) => {
+
+bot.on(message('photo'), async (ctx) => {
     if (myHomework.state === true) {
         ctx.reply("Я пока не умею обрабатывать фото. Напиши текстом");
         return;
@@ -829,7 +855,7 @@ bot.on('photo', async (ctx) => {
 });
 
 // receive file
-bot.on('document', async (ctx) => {
+bot.on(message('document'), async (ctx) => {
     if (myHomework.state === true) {
         ctx.reply("Я пока не умею обрабатывать файлы. Напиши текстом");
         return;
@@ -854,3 +880,6 @@ bot.on('document', async (ctx) => {
         }
     }
 });
+
+
+
