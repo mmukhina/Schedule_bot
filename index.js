@@ -16,18 +16,17 @@ dotenv.config();
 
 let dbconnection = false;
 
-//const bot = new Telegraf(process.env.BOT_TOKEN);
-const bot = new Telegraf("6635082050:AAENJb8buj2jtobZM93pg3ycNAaMKHkHcjQ");
+const bot = new Telegraf(process.env.BOT_TOKEN);
+//const bot = new Telegraf("6635082050:AAENJb8buj2jtobZM93pg3ycNAaMKHkHcjQ");
 
 let messageId;
 let fromChatId;
 
 
-/*
 if (process.env.NODE_ENV !== "development") {
     bot.startWebhook(`/${process.env.BOT_TOKEN}`, null, 3000);
 }
-    */
+
 
 if (process.env.NODE_ENV === "development") {
     bot.launch();
