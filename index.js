@@ -55,7 +55,21 @@ const buttonsText = {
 }
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.launch();
+if (process.env.NODE_ENV !== "development") {
+    bot.startWebhook(`/${process.env.BOT_TOKEN}`, null, 3000);
+}
+
+
+if (process.env.NODE_ENV === "development") {
+    bot.launch();
+} else { // if local use Long-polling
+    bot.launch({
+        webhook: {
+            domain: process.env.DOMAIN,
+            port: process.env.PORT || 8000
+        }
+    });
+}
 
 // Keyboards
 
