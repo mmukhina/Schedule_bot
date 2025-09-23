@@ -2,14 +2,13 @@ import dotenv from 'dotenv';
 import { Telegraf, Markup } from 'telegraf';
 import mongoose from 'mongoose';
 
-import BotUserData from './models/botUserData.js';
+//import BotUserData from './models/botUserData.js';
 //import BotHwInfo from './models/botHwInfo.js';
 //import BotHwComp from './models/botHwComp.js';
 //import BotUserHw from './models/botUserHw.js';
 import BotSaveRedirect from './models/botSaveRedirect.js';
 
 dotenv.config();
-let see_info = false;
 let lastMessages = {};
 let dbconnection = false;
 
@@ -20,10 +19,7 @@ try {
     console.log(err);
 }
 
-let state = "none";
-
-let chat_id = [];
-let chat_message_id = [];
+let user_info = {};
 
 const subjects = {
     1: "ТР ПО",
@@ -75,6 +71,21 @@ if (process.env.NODE_ENV === "development") {
         }
     });
 }
+
+bot.use(async (ctx, next) => {
+    if (ctx.from) {
+        const userId = ctx.from.id;
+
+        if (!user_info[userId]) {
+            user_info[userId] = {
+                chat_id : [],
+                chat_message_id : [],
+                state: "none",
+            };
+        }
+    }
+    return next();
+});
 
 // Keyboards
 
@@ -183,22 +194,24 @@ bot.action(/subject_(\d+)/, async (ctx) => {
     const subjectId = ctx.match[1];
     const selectedSubject = subjects[subjectId];
 
+    let info = user_info[ctx.from.id];
+
     let sentMessage;
 
-    if (state == "add") {
+    if (info.state == "add") {
         sentMessage = await ctx.reply("Успешно сохранено! - /menu");
 
-        for (let i = 0; i < chat_id.length; i++) {
+        for (let i = 0; i < info.chat_id.length; i++) {
             let userData = new BotSaveRedirect({
-                messageId: chat_message_id[i],
-                fromChatId: chat_id[i],
+                messageId: info.chat_message_id[i],
+                fromChatId: info.chat_id[i],
                 subject: selectedSubject,
             });
             await userData.save();
         }
 
-        chat_id = [];
-        chat_message_id = [];
+        info.chat_id = [];
+        info.chat_message_id = [];
 
     } else {
         sentMessage = await ctx.reply("Предмет " + selectedSubject);
@@ -233,7 +246,7 @@ bot.action(/subject_(\d+)/, async (ctx) => {
             add_message(ctx, sentMessage);
         }
     }
-    state = "none";
+    info.state = "none";
 
     add_message(ctx, sentMessage);
 });
@@ -371,15 +384,16 @@ async function check_membership(channel, bot_id) {
 
 bot.on('message', async (ctx) => {
     let sentMessage;
+    let info = user_info[ctx.from.id];
 
     try {
         let membership = await check_membership(ctx.message.forward_from_chat.id, ctx.botInfo.id);
 
         if (membership) {
-            chat_id.push(ctx.message.forward_from_chat.id);
-            chat_message_id.push(ctx.message.forward_from_message_id);
+            info.chat_id.push(ctx.message.forward_from_chat.id);
+            info.chat_message_id.push(ctx.message.forward_from_message_id);
 
-            state = "add";
+            info.state = "add";
             sentMessage = await ctx.reply('Куда сохранить?', chooseSubject);
         } else {
             sentMessage = await ctx.reply("Forbidden: bot is not a member of the channel chat - /menu");
@@ -389,11 +403,11 @@ bot.on('message', async (ctx) => {
         //const message = await ctx.copyMessage(ctx.chat.id, ctx.message.message_id);
         let info = await ctx.forwardMessage(process.env.CHANNEL_ID);
 
-        chat_id.push(info.sender_chat.id);
-        chat_message_id.push(info.message_id);
+        info.chat_id.push(info.sender_chat.id);
+        info.chat_message_id.push(info.message_id);
 
-        state = "add";
-        if (chat_id.length == 1) {
+        info.state = "add";
+        if (info.chat_id.length == 1) {
             sentMessage = await ctx.reply('Куда сохранить?', chooseSubject);
         }
 
