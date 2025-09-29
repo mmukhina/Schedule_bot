@@ -404,7 +404,7 @@ bot.on('message', async (ctx) => {
         let info = await ctx.forwardMessage(process.env.CHANNEL_ID);
 
         info.chat_id.push(info.sender_chat.id);
-        info.chat_message_id.push(info.message_id);
+        //info.chat_message_id.push(info.message_id);
 
         info.state = "add";
         if (info.chat_id.length == 1) {
